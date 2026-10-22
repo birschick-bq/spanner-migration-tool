@@ -4,6 +4,33 @@ The integration tests involve performing actual migrations from a variety of sou
 targeted towards a local emulated instance of spanner. The following describes the steps needed to set up all the
 resources required for running the integration tests.
 
+## Quick Start With Docker
+
+On Windows with Docker Desktop, [scripts/start-integration-test-envs.ps1](../scripts/start-integration-test-envs.ps1)
+(or [scripts/start-integration-test-envs.sh](../scripts/start-integration-test-envs.sh) on Linux and macOS)
+starts Spanner Omni, PostgreSQL, MariaDB (MySQL), SQL Server and Oracle containers (named `smt-it-*`) and loads the
+test data described below. It generates random PostgreSQL and MariaDB passwords when it creates those containers and
+saves them in `scripts/test-env.local.sh` (git-ignored). Run `source scripts/test-env.sh` before running the tests; it
+sets the environment variables and loads the saved passwords. Containers created before this change keep the old fixed
+passwords until they are recreated with `-Recreate` / `--recreate`.
+```powershell
+    .\scripts\start-integration-test-envs.ps1                      # start everything
+    .\scripts\start-integration-test-envs.ps1 -Services mysql,omni # start a subset
+    .\scripts\start-integration-test-envs.ps1 -Recreate            # recreate containers and reload data
+    .\scripts\start-integration-test-envs.ps1 -Stop                # remove the containers
+```
+```sh
+    ./scripts/start-integration-test-envs.sh                       # start everything
+    ./scripts/start-integration-test-envs.sh -s mysql,omni         # start a subset
+    ./scripts/start-integration-test-envs.sh --recreate            # recreate containers and reload data
+    ./scripts/start-integration-test-envs.sh --stop                # remove the containers
+```
+Pass `-OmniPort`/`-OmniAdminPort` (`--omni-port`/`--omni-admin-port` for the shell script) if the default ports
+9010/9020 are already in use. Spanner Omni defaults to the `2026.r4-lts` image; pass `-OmniTag`/`--omni-tag` to use another
+tag, for example `2026.r1-beta` (the version used by CI). The scripts start the server with `--listen-addresses 0.0.0.0`
+when the image supports it, because newer releases otherwise listen only on `localhost` inside the container and Docker's
+published ports cannot reach them. The remaining sections describe the manual setup.
+
 ## Setup Source Databases
 
 The following integration tests expect an actually running database to use as the source:

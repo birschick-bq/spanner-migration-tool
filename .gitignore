@@ -20,3 +20,6 @@ webv2/config.json
 #file upload 
 upload-file/
 spanner-migration-tool
+
+# local test environment (contains passwords)
+scripts/test-env.local.sh
