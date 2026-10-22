@@ -135,3 +135,42 @@ Once you have everything setup as required, run the integration tests as follows
 
 Note that running all tests (using `go test -v ./...`) will also run the integration tests; if the
 `SPANNER_EMULATOR_HOST` environment variable is **not** set, the integration tests will simply be skipped.
+
+## Running the End-to-End Tests
+
+The `TestE2E_*` tests in `testing/mysql` and `testing/postgres` (`e2e_test.go` and `e2e_data_types_test.go`) check
+Spanner's own limits (table, index and interleave depth limits) and data type mappings. They run against a real Cloud
+Spanner instance by default, or against Spanner Omni when it is declared as described below. They are never run against
+the Cloud Spanner emulator, and they are opt-in.
+
+| Environment variable | Required value |
+|---|---|
+| `SPANNER_MIGRATION_TOOL_RUN_E2E_TESTS` | Any non-empty value (for example `true`). Opts in to the end-to-end tests. If it is empty or unset, they are skipped. |
+| `SPANNER_EMULATOR_HOST` | Must be **unset** to use Cloud Spanner. If it is set, the end-to-end tests are skipped unless `SPANNER_EMULATOR_HOST_TYPE` is `omni`. |
+| `SPANNER_EMULATOR_HOST_TYPE` | Only read when `SPANNER_EMULATOR_HOST` is set. `omni` runs the tests against Spanner Omni; `emulator` (the default) skips them. |
+| `SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_PROJECT_ID` | The Google Cloud project that contains the Spanner instance. |
+| `SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_INSTANCE_ID` | The Spanner instance in which the tests create and drop databases. |
+
+You also need credentials with permission to create and drop databases and read and write data on that instance (for
+example, from `gcloud auth application-default login` or `GOOGLE_APPLICATION_CREDENTIALS`), plus the source database
+for the tests you run, set up as described above. Use a dedicated or disposable instance, since usage is billed and a
+failed run can leave databases behind.
+
+```sh
+    unset SPANNER_EMULATOR_HOST
+    export SPANNER_MIGRATION_TOOL_RUN_E2E_TESTS=true
+    export SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_PROJECT_ID=<GCP project ID>
+    export SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_INSTANCE_ID=<Spanner instance ID>
+    go test -v -timeout 60m ./testing/mysql -run TestE2E
+```
+
+### Running against Spanner Omni
+
+`SPANNER_EMULATOR_HOST` is also how the tests reach Spanner Omni, and the Cloud Spanner emulator uses the same
+variable, so the tests cannot tell them apart. Setting `SPANNER_EMULATOR_HOST_TYPE=omni` declares that the endpoint is
+Spanner Omni. `source scripts/test-env.sh` sets both variables along with the source database settings. A full run of
+each package takes close to an hour. Some tests fail on known gaps, such as sizes over a limit that the tool does not
+reject or data type mappings that differ from the expectations, so compare the results with a previous run.
+
+A skipped test is reported as `SKIP` and does not fail the run, so check the output for `PASS` to confirm the tests
+actually ran.

@@ -1182,8 +1182,12 @@ func updateSessionFileWithInterleaveDetails(sessionFileName string, interleaveDe
 }
 
 func onlyRunForEndToEndTest(t *testing.T) {
-	if os.Getenv("SPANNER_MIGRATION_TOOL_RUN_E2E_TESTS") == "" || os.Getenv("SPANNER_EMULATOR_HOST") != "" {
-		t.Skip("Skipping end-to-end tests. To run end-to-end tests, set SPANNER_MIGRATION_TOOL_RUN_E2E_TESTS env var to true, unset SPANNER_EMULATOR_HOST env var and ensure SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_INSTANCE_ID and SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_PROJECT_ID env vars are set.")
+	if os.Getenv("SPANNER_MIGRATION_TOOL_RUN_E2E_TESTS") == "" {
+		t.Skip("Skipping end-to-end tests. To run end-to-end tests, set SPANNER_MIGRATION_TOOL_RUN_E2E_TESTS env var to true, ensure SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_INSTANCE_ID and SPANNER_MIGRATION_TOOL_TESTS_GCLOUD_PROJECT_ID env vars are set.")
+	}
+	// SPANNER_EMULATOR_HOST also points at Spanner Omni, so the end-to-end tests only run against it when it is declared as such.
+	if os.Getenv("SPANNER_EMULATOR_HOST") != "" && strings.ToLower(os.Getenv("SPANNER_EMULATOR_HOST_TYPE")) != "omni" {
+		t.Skip("Skipping end-to-end tests because SPANNER_EMULATOR_HOST is set. To run them against Spanner Omni, set SPANNER_EMULATOR_HOST_TYPE=omni (allowed values: emulator, omni; the default is emulator), or unset SPANNER_EMULATOR_HOST to use Cloud Spanner.")
 	}
 }
 
